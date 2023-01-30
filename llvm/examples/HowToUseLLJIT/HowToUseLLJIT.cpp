@@ -71,6 +71,8 @@ ThreadSafeModule createDemoModule() {
   // Create the return instruction and add it to the basic block
   builder.CreateRet(Add);
 
+  errs() << "We just constructed this LLVM module:" <<M->getName() <<"\n\n" << *M;
+
   return ThreadSafeModule(std::move(M), std::move(Context));
 }
 

@@ -1,9 +1,18 @@
+find_package(LLVM REQUIRED CONFIG)
+project(Kaleidoscope)
+
+message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
+message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 add_custom_target(Kaleidoscope)
 set_target_properties(Kaleidoscope PROPERTIES FOLDER Examples)
 
 macro(add_kaleidoscope_chapter name)
-  add_dependencies(Kaleidoscope ${name})
-  add_llvm_example(${name} ${ARGN})
+    include_directories(${LLVM_INCLUDE_DIRS})
+    add_definitions(${LLVM_DEFINITIONS})
+    list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
+    include(AddLLVM)
+    add_dependencies(Kaleidoscope ${name})
+    add_llvm_example(${name} ${ARGN})
 endmacro(add_kaleidoscope_chapter name)
 
 add_subdirectory(BuildingAJIT)

@@ -128,7 +128,7 @@ int main() {
   // Now we create the JIT.
   ExecutionEngine* EE = EngineBuilder(std::move(Owner)).create();
 
-  outs() << "We just constructed this LLVM module:\n\n" << *M;
+  outs() << "We just constructed this LLVM module:" <<M->getName() <<"\n\n" << *M;
   outs() << "\n\nRunning foo: ";
   outs().flush();
 

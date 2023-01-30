@@ -133,7 +133,7 @@ int main(int argc, char **argv) {
   }
 
   errs() << "OK\n";
-  errs() << "We just constructed this LLVM module:\n\n---------\n" << *M;
+  errs() << "We just constructed this LLVM module:" << M->getName() <<"\n\n---------\n" << *M;
   errs() << "---------\nstarting fibonacci(" << n << ") with JIT...\n";
 
   // Call the Fibonacci function with argument n:
