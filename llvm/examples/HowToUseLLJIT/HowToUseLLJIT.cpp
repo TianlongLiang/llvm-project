@@ -24,6 +24,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "llvm-c/Core.h"
+#include "llvm-c/Orc.h"
 #include "llvm/ExecutionEngine/Orc/LLJIT.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/IRBuilder.h"
@@ -37,6 +39,58 @@ using namespace llvm;
 using namespace llvm::orc;
 
 ExitOnError ExitOnErr;
+
+void LearnAtomicInstruction() {
+
+  // create context, builder, module
+  LLVMOrcThreadSafeContextRef ThreadSafeContext =
+      LLVMOrcCreateNewThreadSafeContext();
+  LLVMContextRef ContextRef =
+      LLVMOrcThreadSafeContextGetContext(ThreadSafeContext);
+  LLVMBuilderRef BuilderRef = LLVMCreateBuilderInContext(ContextRef);
+  LLVMModuleRef MRef =
+      LLVMModuleCreateWithNameInContext("LLVM to asm test", ContextRef);
+
+  // create function to include tested ir
+  LLVMTypeRef param_types[] = {LLVMVoidType()}, func_type;
+  func_type = LLVMFunctionType(LLVMVoidType(), param_types, 1, false);
+  LLVMValueRef TestFunc = LLVMAddFunction(MRef, "myfunc", func_type);
+
+  // create basic block and instructions
+  LLVMBasicBlockRef Block = LLVMAppendBasicBlock(TestFunc, "basic block");
+  LLVMPositionBuilderAtEnd(BuilderRef, Block);
+
+  LLVMValueRef value, maddr = LLVMConstInt(LLVMInt32Type(), 16, true);
+  value = LLVMBuildLoad2(BuilderRef, LLVMInt32Type(), maddr, "data");
+  LLVMSetAlignment(value, 1 << 4);
+  LLVMSetVolatile(value, true);
+  LLVMSetOrdering(value, LLVMAtomicOrderingSequentiallyConsistent);
+
+  LLVMBuildRet(BuilderRef, NULL);
+
+  // init target machine
+  char *err_msg = NULL, *triple = NULL, *cpu = NULL, *features = NULL;
+  LLVMTargetRef target = NULL;
+  LLVMTargetMachineRef target_machine = NULL;
+  triple = LLVMGetDefaultTargetTriple();
+  LLVMGetTargetFromTriple(triple, &target, &err_msg);
+  cpu = LLVMGetHostCPUName();
+  features = LLVMGetHostCPUFeatures();
+  target_machine = LLVMCreateTargetMachine(
+      target, triple, cpu, features, LLVMCodeGenLevelDefault, LLVMRelocDefault,
+      LLVMCodeModelJITDefault);
+
+  // print ir
+  auto MP = unwrap(MRef);
+  errs() << "We just constructed this LLVM module:" << MP->getName() << "\n\n"
+         << *MP;
+
+  // dump assembly
+  char *err = NULL;
+  LLVMCodeGenFileType file_type = LLVMAssemblyFile;
+  LLVMTargetMachineEmitToFile(target_machine, MRef, "dump_file", file_type,
+                              &err);
+}
 
 ThreadSafeModule createDemoModule() {
   auto Context = std::make_unique<LLVMContext>();
@@ -71,7 +125,8 @@ ThreadSafeModule createDemoModule() {
   // Create the return instruction and add it to the basic block
   builder.CreateRet(Add);
 
-  errs() << "We just constructed this LLVM module:" <<M->getName() <<"\n\n" << *M;
+  errs() << "We just constructed this LLVM module:" << M->getName() << "\n\n"
+         << *M;
 
   return ThreadSafeModule(std::move(M), std::move(Context));
 }
@@ -98,6 +153,8 @@ int main(int argc, char *argv[]) {
 
   int Result = Add1(42);
   outs() << "add1(42) = " << Result << "\n";
+
+  LearnAtomicInstruction();
 
   return 0;
 }
