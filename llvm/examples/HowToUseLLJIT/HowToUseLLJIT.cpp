@@ -60,12 +60,48 @@ void LearnAtomicInstruction() {
   LLVMBasicBlockRef Block = LLVMAppendBasicBlock(TestFunc, "basic block");
   LLVMPositionBuilderAtEnd(BuilderRef, Block);
 
-  LLVMValueRef value, maddr = LLVMConstInt(LLVMInt32Type(), 16, true);
-  value = LLVMBuildLoad2(BuilderRef, LLVMInt32Type(), maddr, "data");
-  LLVMSetAlignment(value, 1 << 4);
-  LLVMSetVolatile(value, true);
-  LLVMSetOrdering(value, LLVMAtomicOrderingSequentiallyConsistent);
+  // load
+  LLVMValueRef inst, maddr = LLVMConstInt(LLVMInt32Type(), 22, true);
+  inst = LLVMBuildLoad2(BuilderRef, LLVMInt32Type(), maddr, "load_value");
+  LLVMSetAlignment(inst, 1 << 4);
+  LLVMSetVolatile(inst, true);
+  LLVMSetOrdering(inst, LLVMAtomicOrderingSequentiallyConsistent);
 
+  // save
+  LLVMValueRef value = LLVMConstInt(LLVMInt32Type(), 16, true);
+  inst = LLVMBuildStore(BuilderRef, value, maddr);
+  LLVMSetAlignment(inst, 1 << 4);
+  LLVMSetVolatile(inst, true);
+  LLVMSetOrdering(inst, LLVMAtomicOrderingSequentiallyConsistent);
+
+  // cmpxchg
+  LLVMValueRef expect = LLVMConstInt(LLVMInt32Type(), 18, true);
+  inst =
+      LLVMBuildAtomicCmpXchg(BuilderRef, maddr, expect, value,
+                             LLVMAtomicOrderingSequentiallyConsistent,
+                             LLVMAtomicOrderingSequentiallyConsistent, false);
+  LLVMSetVolatile(inst, true);
+
+  // atomic rwm
+  inst = LLVMBuildAtomicRMW(BuilderRef, LLVMAtomicRMWBinOpAdd, maddr, value,
+                            LLVMAtomicOrderingSequentiallyConsistent, false);
+  LLVMSetVolatile(inst, true);
+  inst = LLVMBuildAtomicRMW(BuilderRef, LLVMAtomicRMWBinOpSub, maddr, value,
+                            LLVMAtomicOrderingSequentiallyConsistent, false);
+  LLVMSetVolatile(inst, true);
+  inst = LLVMBuildAtomicRMW(BuilderRef, LLVMAtomicRMWBinOpAnd, maddr, value,
+                            LLVMAtomicOrderingSequentiallyConsistent, false);
+  LLVMSetVolatile(inst, true);
+  inst = LLVMBuildAtomicRMW(BuilderRef, LLVMAtomicRMWBinOpOr, maddr, value,
+                            LLVMAtomicOrderingSequentiallyConsistent, false);
+  LLVMSetVolatile(inst, true);
+  inst = LLVMBuildAtomicRMW(BuilderRef, LLVMAtomicRMWBinOpXor, maddr, value,
+                            LLVMAtomicOrderingSequentiallyConsistent, false);
+  LLVMSetVolatile(inst, true);
+  inst = LLVMBuildAtomicRMW(BuilderRef, LLVMAtomicRMWBinOpXchg, maddr, value,
+                            LLVMAtomicOrderingSequentiallyConsistent, false);
+  LLVMSetVolatile(inst, true);
+  // ret instruction
   LLVMBuildRet(BuilderRef, NULL);
 
   // init target machine
