@@ -53,56 +53,63 @@ void LearnAtomicInstruction() {
 
   // create function to include tested ir
   LLVMTypeRef param_types[] = {LLVMVoidType()}, func_type;
-  func_type = LLVMFunctionType(LLVMVoidType(), param_types, 1, false);
+  func_type = LLVMFunctionType(LLVMInt32Type(), param_types, 1, false);
   LLVMValueRef TestFunc = LLVMAddFunction(MRef, "myfunc", func_type);
 
   // create basic block and instructions
   LLVMBasicBlockRef Block = LLVMAppendBasicBlock(TestFunc, "basic block");
   LLVMPositionBuilderAtEnd(BuilderRef, Block);
 
-  // load
-  LLVMValueRef inst, maddr = LLVMConstInt(LLVMInt32Type(), 22, true);
-  inst = LLVMBuildLoad2(BuilderRef, LLVMInt32Type(), maddr, "load_value");
-  LLVMSetAlignment(inst, 1 << 4);
-  LLVMSetVolatile(inst, true);
-  LLVMSetOrdering(inst, LLVMAtomicOrderingSequentiallyConsistent);
-
+  LLVMValueRef value, maddr;
   // save
-  LLVMValueRef value = LLVMConstInt(LLVMInt32Type(), 16, true);
-  inst = LLVMBuildStore(BuilderRef, value, maddr);
-  LLVMSetAlignment(inst, 1 << 4);
-  LLVMSetVolatile(inst, true);
-  LLVMSetOrdering(inst, LLVMAtomicOrderingSequentiallyConsistent);
-
-  // cmpxchg
-  LLVMValueRef expect = LLVMConstInt(LLVMInt32Type(), 18, true);
-  inst =
-      LLVMBuildAtomicCmpXchg(BuilderRef, maddr, expect, value,
-                             LLVMAtomicOrderingSequentiallyConsistent,
-                             LLVMAtomicOrderingSequentiallyConsistent, false);
-  LLVMSetVolatile(inst, true);
+  value = LLVMConstInt(LLVMInt32Type(), 114514, true);
+  maddr = LLVMConstInt(LLVMInt32Type(), 128, true);
+  value = LLVMBuildStore(BuilderRef, value, maddr);
+  LLVMSetAlignment(value, 1 << 4);
+  LLVMSetVolatile(value, true);
+  LLVMSetOrdering(value, LLVMAtomicOrderingSequentiallyConsistent);
+  // load
+  value = LLVMBuildLoad2(BuilderRef, LLVMInt32Type(), maddr, "load_value");
+  LLVMSetAlignment(value, 1 << 4);
+  LLVMSetVolatile(value, true);
+  LLVMSetOrdering(value, LLVMAtomicOrderingSequentiallyConsistent);
 
   // atomic rwm
-  inst = LLVMBuildAtomicRMW(BuilderRef, LLVMAtomicRMWBinOpAdd, maddr, value,
-                            LLVMAtomicOrderingSequentiallyConsistent, false);
-  LLVMSetVolatile(inst, true);
-  inst = LLVMBuildAtomicRMW(BuilderRef, LLVMAtomicRMWBinOpSub, maddr, value,
-                            LLVMAtomicOrderingSequentiallyConsistent, false);
-  LLVMSetVolatile(inst, true);
-  inst = LLVMBuildAtomicRMW(BuilderRef, LLVMAtomicRMWBinOpAnd, maddr, value,
-                            LLVMAtomicOrderingSequentiallyConsistent, false);
-  LLVMSetVolatile(inst, true);
-  inst = LLVMBuildAtomicRMW(BuilderRef, LLVMAtomicRMWBinOpOr, maddr, value,
-                            LLVMAtomicOrderingSequentiallyConsistent, false);
-  LLVMSetVolatile(inst, true);
-  inst = LLVMBuildAtomicRMW(BuilderRef, LLVMAtomicRMWBinOpXor, maddr, value,
-                            LLVMAtomicOrderingSequentiallyConsistent, false);
-  LLVMSetVolatile(inst, true);
-  inst = LLVMBuildAtomicRMW(BuilderRef, LLVMAtomicRMWBinOpXchg, maddr, value,
-                            LLVMAtomicOrderingSequentiallyConsistent, false);
-  LLVMSetVolatile(inst, true);
+  maddr = LLVMConstInt(LLVMInt32Type(), 256, true);
+  value = LLVMBuildAtomicRMW(BuilderRef, LLVMAtomicRMWBinOpAdd, maddr, value,
+                             LLVMAtomicOrderingSequentiallyConsistent, false);
+  LLVMSetVolatile(value, true);
+
+  value = LLVMBuildAtomicRMW(BuilderRef, LLVMAtomicRMWBinOpSub, maddr, value,
+                             LLVMAtomicOrderingSequentiallyConsistent, false);
+  LLVMSetVolatile(value, true);
+  value = LLVMBuildAtomicRMW(BuilderRef, LLVMAtomicRMWBinOpAnd, maddr, value,
+                             LLVMAtomicOrderingSequentiallyConsistent, false);
+  LLVMSetVolatile(value, true);
+  value = LLVMBuildAtomicRMW(BuilderRef, LLVMAtomicRMWBinOpOr, maddr, value,
+                             LLVMAtomicOrderingSequentiallyConsistent, false);
+  LLVMSetVolatile(value, true);
+  value = LLVMBuildAtomicRMW(BuilderRef, LLVMAtomicRMWBinOpXor, maddr, value,
+                             LLVMAtomicOrderingSequentiallyConsistent, false);
+  LLVMSetVolatile(value, true);
+  value = LLVMBuildAtomicRMW(BuilderRef, LLVMAtomicRMWBinOpXchg, maddr, value,
+                             LLVMAtomicOrderingSequentiallyConsistent, false);
+  LLVMSetVolatile(value, true);
+
+  // cmpxchg
+  LLVMValueRef expected, new_val;
+  expected = value;
+  new_val = LLVMConstInt(LLVMInt32Type(), 514, true);
+  value =
+      LLVMBuildAtomicCmpXchg(BuilderRef, maddr, expected, new_val,
+                             LLVMAtomicOrderingSequentiallyConsistent,
+                             LLVMAtomicOrderingSequentiallyConsistent, false);
+  LLVMSetVolatile(value, true);
+  //  CmpXchg return {i32, i1} structure, we need to extrack the previous_value
+  //  from the structure
+  value = LLVMBuildExtractValue(BuilderRef, value, 0, "previous_value");
   // ret instruction
-  LLVMBuildRet(BuilderRef, NULL);
+  LLVMBuildRet(BuilderRef, value);
 
   // init target machine
   char *err_msg = NULL, *triple = NULL, *cpu = NULL, *features = NULL;
